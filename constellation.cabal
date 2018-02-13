@@ -91,6 +91,8 @@ library
                      , raw-strings-qq >= 1.1
                      , resource-pool >= 0.2.3.2
                      , saltine >= 0.0.0.4
+                     , serialise >= 0.2.0
+                     , cborg >= 0.2.0
                      , split >= 0.2.3.1
                      , sqlite-simple >= 0.4.13.0
                      , text >= 1.2.2.1

@@ -10,7 +10,10 @@ import Data.Maybe (fromJust)
 import qualified Crypto.Saltine.Class as S
 import qualified Crypto.Saltine.Core.Box as Box
 import qualified Crypto.Saltine.Core.SecretBox as SBox
-
+import Codec.Serialise
+-- import qualified Data.ByteString.Lazy as BSL
+import Codec.Serialise.Encoding
+import Codec.Serialise.Decoding
 data EncryptedPayload = EncryptedPayload
     { eplSender    :: Box.PublicKey
     , eplCt        :: ByteString
@@ -21,6 +24,33 @@ data EncryptedPayload = EncryptedPayload
 
 instance Show EncryptedPayload where
     show = show . encodeable
+
+instance Serialise EncryptedPayload where
+    encode = cborEncodePayload
+    decode = cborDecodePayload
+currentVersion :: Int
+currentVersion = 2
+cborEncodePayload :: EncryptedPayload -> Encoding
+cborEncodePayload (EncryptedPayload eplSender eplCt eplNonce eplRcptBoxes eplRcptNonce) =
+    encodeInt currentVersion <> encode (S.encode eplSender) <> encode eplCt <> encode (S.encode eplNonce) <> encode (unsafeHead eplRcptBoxes) <> encode (S.encode eplRcptNonce)
+
+cborDecodePayload :: Decoder s EncryptedPayload
+cborDecodePayload = do
+    version <- decodeInt
+    sender <- decode
+    ct <- decode
+    nonce <- decode
+    rcptBox <- decode
+    rcptNonce <- decode
+    case version of
+        2 -> return EncryptedPayload
+            { eplSender    = fromJust $ S.decode sender
+            , eplCt        = ct
+            , eplNonce     = fromJust $ S.decode nonce
+            , eplRcptBoxes = [rcptBox]
+            , eplRcptNonce = fromJust $ S.decode rcptNonce
+            }
+        _ -> error "cbor serialisation version 2 is the only version currently supported."
 
 encodeable :: EncryptedPayload
            -> (ByteString, ByteString, ByteString, [ByteString], ByteString)
